@@ -1,0 +1,87 @@
+- name: Configure Web Server
+  hosts: web
+  become: true
+  tasks:
+    - name: Update system packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install prerequisites for nvm
+      yum:
+        name:
+          - curl
+          - tar
+          - gcc
+          - make
+          - openssl-devel
+          - libffi-devel
+          - git
+        state: present
+
+    - name: Install nvm
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+      args:
+        executable: /bin/bash
+
+    - name: Install Node.js using nvm
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install 16
+        nvm alias default 16
+        nvm use default
+      args:
+        executable: /bin/bash
+
+    - name: Verify Node.js installation
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        node -v
+        npm -v
+      args:
+        executable: /bin/bash
+      register: node_output
+
+    - name: Display Node.js version
+      debug:
+        var: node_output.stdout_lines
+
+    - name: Clone TravelMemory repository
+      git:
+        repo: 'https://github.com/UnpredictablePrashant/TravelMemory.git'
+        dest: /home/ec2-user/TravelMemory
+        version: main
+
+    - name: Change working directory to frontend
+      shell: |
+        cd /home/ec2-user/TravelMemory/frontend
+      args:
+        executable: /bin/bash
+
+    - name: Install application dependencies
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm install
+      args:
+        chdir: /home/ec2-user/TravelMemory/frontend
+        executable: /bin/bash
+
+    - name: Configure environment variables
+      copy:
+        content: |
+          PORT=3000
+          DB_URI=mongodb://admin:securePassword@10.0.2.194:27017/TravelMemory
+        dest: /home/ec2-user/TravelMemory/frontend/.env
+
+    - name: Start Node.js application
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm start
+      args:
+        chdir: /home/ec2-user/TravelMemory/frontend
+        executable: /bin/bash

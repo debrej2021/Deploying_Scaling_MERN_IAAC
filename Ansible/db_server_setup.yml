@@ -1,0 +1,61 @@
+- name: Configure Database Server and Backend
+  hosts: db
+  become: true
+  tasks:
+    - name: Update system packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install MongoDB
+      yum:
+        name: mongodb-org
+        state: present
+
+    - name: Start and enable MongoDB
+      service:
+        name: mongod
+        state: started
+        enabled: true
+
+    - name: Configure MongoDB authentication and create database
+      shell: |
+        mongo <<EOF
+        use admin
+        db.createUser({ user: "admin", pwd: "securePassword", roles: [ "root" ] })
+        use TravelMemory
+        db.createCollection("example")
+        EOF
+      args:
+        executable: /bin/bash
+
+    - name: Clone TravelMemory backend repository
+      git:
+        repo: 'https://github.com/UnpredictablePrashant/TravelMemory.git'
+        dest: /home/ec2-user/TravelMemory
+        version: main
+
+    - name: Install backend dependencies
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        cd /home/ec2-user/TravelMemory/backend
+        npm install
+      args:
+        executable: /bin/bash
+
+    - name: Configure backend environment variables
+      copy:
+        content: |
+          PORT=5000
+          DB_URI=mongodb://admin:securePassword@localhost:27017/TravelMemory
+        dest: /home/ec2-user/TravelMemory/backend/.env
+
+    - name: Start backend server using PM2
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        cd /home/ec2-user/TravelMemory/backend
+        pm2 start npm --name "backend" -- start
+      args:
+        executable: /bin/bash
