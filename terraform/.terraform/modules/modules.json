@@ -1,1 +1,3 @@
-{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"ec2","Source":"./modules/EC2","Dir":"modules/EC2"},{"Key":"iam","Source":"./modules/iam","Dir":"modules/iam"},{"Key":"vpc","Source":"./modules/VPC","Dir":"modules/VPC"}]}
+version https://git-lfs.github.com/spec/v1
+oid sha256:ebfc8d69b6048623a98d9813f25c8ce29d1ffb5e851c73300353a9311ebee2e6
+size 223
